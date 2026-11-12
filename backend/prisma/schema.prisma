@@ -1,0 +1,228 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  STAFF
+  STUDENT
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  LEAVE
+}
+
+enum ExamType {
+  INTERNAL
+  SEMESTER
+  PRACTICAL
+  MODEL
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         UserRole @default(STUDENT)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  studentProfile StudentProfile?
+  staffProfile   StaffProfile?
+
+  announcements Announcement[]
+}
+
+model Department {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  code        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+
+  students      StudentProfile[]
+  staff         StaffProfile[]
+  subjects      Subject[]
+  announcements Announcement[]
+}
+
+model StudentProfile {
+  id            Int      @id @default(autoincrement())
+  userId        Int      @unique
+  rollNumber    String?  @unique
+  admissionYear Int?
+  year          Int?
+  section       String?
+  phone         String?
+  address       String?
+  departmentId  Int?
+  createdAt     DateTime @default(now())
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+
+  enrollments Enrollment[]
+  attendance  Attendance[]
+  marks       Mark[]
+  submissions AssignmentSubmission[]
+}
+
+model StaffProfile {
+  id           Int       @id @default(autoincrement())
+  userId       Int       @unique
+  employeeCode String?   @unique
+  designation  String?
+  phone        String?
+  departmentId Int?
+  joiningDate  DateTime?
+  createdAt    DateTime  @default(now())
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+
+  subjects       Subject[]
+  assignments    Assignment[]
+  studyMaterials StudyMaterial[]
+}
+
+model Subject {
+  id           Int      @id @default(autoincrement())
+  name         String
+  code         String   @unique
+  credits      Int      @default(3)
+  departmentId Int
+  staffId      Int?
+  createdAt    DateTime @default(now())
+
+  department Department    @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  staff      StaffProfile? @relation(fields: [staffId], references: [id], onDelete: SetNull)
+
+  enrollments    Enrollment[]
+  attendance     Attendance[]
+  exams          Exam[]
+  assignments    Assignment[]
+  studyMaterials StudyMaterial[]
+}
+
+model Enrollment {
+  id        Int      @id @default(autoincrement())
+  studentId Int
+  subjectId Int
+  createdAt DateTime @default(now())
+
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject Subject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, subjectId])
+}
+
+model Attendance {
+  id             Int              @id @default(autoincrement())
+  studentId      Int
+  subjectId      Int
+  attendanceDate DateTime         @db.Date
+  status         AttendanceStatus
+  remarks        String?
+  createdAt      DateTime         @default(now())
+
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject Subject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, subjectId, attendanceDate])
+  @@index([attendanceDate])
+}
+
+model Exam {
+  id           Int      @id @default(autoincrement())
+  name         String
+  type         ExamType
+  subjectId    Int
+  examDate     DateTime
+  maxMarks     Float
+  academicYear String?
+  createdAt    DateTime @default(now())
+
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  marks   Mark[]
+}
+
+model Mark {
+  id        Int      @id @default(autoincrement())
+  examId    Int
+  studentId Int
+  score     Float
+  remarks   String?
+  createdAt DateTime @default(now())
+
+  exam    Exam           @relation(fields: [examId], references: [id], onDelete: Cascade)
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([examId, studentId])
+}
+
+model Assignment {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  subjectId   Int
+  createdById Int
+  dueDate     DateTime
+  createdAt   DateTime @default(now())
+
+  subject   Subject      @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  createdBy StaffProfile @relation(fields: [createdById], references: [id], onDelete: Restrict)
+
+  submissions AssignmentSubmission[]
+}
+
+model AssignmentSubmission {
+  id           Int      @id @default(autoincrement())
+  assignmentId Int
+  studentId    Int
+  fileUrl      String?
+  content      String?
+  submittedAt  DateTime @default(now())
+  marks        Float?
+  feedback     String?
+
+  assignment Assignment     @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student    StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([assignmentId, studentId])
+}
+
+model StudyMaterial {
+  id           Int      @id @default(autoincrement())
+  title        String
+  description  String?
+  fileUrl      String
+  subjectId    Int
+  uploadedById Int
+  createdAt    DateTime @default(now())
+
+  subject    Subject      @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  uploadedBy StaffProfile @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
+}
+
+model Announcement {
+  id                 Int       @id @default(autoincrement())
+  title              String
+  message            String
+  targetRole         UserRole?
+  targetDepartmentId Int?
+  createdById        Int
+  createdAt          DateTime  @default(now())
+  expiresAt          DateTime?
+
+  createdBy  User        @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  department Department? @relation(fields: [targetDepartmentId], references: [id], onDelete: SetNull)
+}
