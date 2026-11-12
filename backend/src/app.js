@@ -2,6 +2,10 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 
+// ======================================
+// ROUTE IMPORTS
+// ======================================
+
 const studyMaterialRoutes = require('./routes/studyMaterialRoutes');
 const announcementRoutes = require('./routes/announcementRoutes');
 const reportRoutes = require('./routes/reportRoutes');
@@ -19,37 +23,105 @@ const markRoutes = require('./routes/markRoutes');
 const assignmentRoutes = require('./routes/assignmentRoutes');
 const submissionRoutes = require('./routes/submissionRoutes');
 
+// ======================================
+// EXPRESS APPLICATION
+// ======================================
+
 const app = express();
 
+// ======================================
+// SECURITY
+// ======================================
+
 app.use(helmet());
-const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || 'http://localhost:5173,http://127.0.0.1:5173')
-    .split(',').map(origin => origin.trim()).filter(Boolean);
+
+// ======================================
+// CORS CONFIGURATION
+// ======================================
+
+const allowedOrigins = [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://localhost:5180',
+    'http://127.0.0.1:5180'
+];
+
 app.use(cors({
-    origin(origin, callback) {
-        if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-        return callback(new Error('Origin is not allowed by CORS.'));
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+
+        return callback(
+            new Error(`Origin ${origin} is not allowed by CORS.`)
+        );
     },
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+
+    methods: [
+        'GET',
+        'POST',
+        'PUT',
+        'PATCH',
+        'DELETE',
+        'OPTIONS'
+    ],
+
+    allowedHeaders: [
+        'Content-Type',
+        'Authorization'
+    ]
 }));
-app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ extended: false, limit: '1mb' }));
+
+// ======================================
+// BODY PARSING
+// ======================================
+
+app.use(express.json({
+    limit: '1mb'
+}));
+
+app.use(express.urlencoded({
+    extended: false,
+    limit: '1mb'
+}));
+
+// ======================================
+// API ROUTES
+// ======================================
 
 app.use('/api/auth', authRoutes);
+
 app.use('/api/students', studentRoutes);
+
 app.use('/api/staff', staffRoutes);
+
 app.use('/api/departments', departmentRoutes);
+
 app.use('/api/subjects', subjectRoutes);
+
 app.use('/api/enrollments', enrollmentRoutes);
+
 app.use('/api/protected', protectedRoutes);
+
 app.use('/api/attendance', attendanceRoutes);
+
 app.use('/api/exams', examRoutes);
+
 app.use('/api/marks', markRoutes);
+
 app.use('/api/assignments', assignmentRoutes);
+
 app.use('/api/submissions', submissionRoutes);
+
 app.use('/api/materials', studyMaterialRoutes);
+
 app.use('/api/announcements', announcementRoutes);
+
 app.use('/api/reports', reportRoutes);
+
+// ======================================
+// HOME ROUTE
+// ======================================
 
 app.get('/', (req, res) => {
     res.json({
@@ -58,6 +130,10 @@ app.get('/', (req, res) => {
     });
 });
 
+// ======================================
+// HEALTH CHECK
+// ======================================
+
 app.get('/api/health', (req, res) => {
     res.status(200).json({
         success: true,
@@ -65,5 +141,9 @@ app.get('/api/health', (req, res) => {
         status: 'Healthy'
     });
 });
+
+// ======================================
+// EXPORT APPLICATION
+// ======================================
 
 module.exports = app;

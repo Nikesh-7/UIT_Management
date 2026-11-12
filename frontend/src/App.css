@@ -455,3 +455,56 @@
     text-align: center;
   }
 }
+/* ROLE-BASED LOGIN */
+
+.login-role-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 22px 0;
+  padding: 5px;
+  border-radius: 12px;
+  background: var(--surface, #f1f3f7);
+}
+
+.login-role-tab {
+  border: none;
+  border-radius: 9px;
+  padding: 11px 5px;
+  background: transparent;
+  color: var(--text, #333);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.login-role-tab.active {
+  background: #2563eb;
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.2);
+}
+
+.login-role-tab:hover {
+  background: rgba(37, 99, 235, 0.12);
+}
+
+.login-role-tab.active:hover {
+  background: #1d4ed8;
+}
+
+.login-card input[type="date"] {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 480px) {
+  .login-role-tabs {
+    margin: 16px 0;
+  }
+
+  .login-role-tab {
+    font-size: 13px;
+    padding: 10px 3px;
+  }
+}

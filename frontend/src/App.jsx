@@ -117,11 +117,22 @@ export default function App() {
     () => sessionStorage.getItem('role')
   );
 
+  // LOGIN STATES
+
+  const [loginRole, setLoginRole] = useState('STUDENT');
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  const [rollNumber, setRollNumber] = useState('');
+  const [employeeCode, setEmployeeCode] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // APPLICATION STATES
 
   const [activePage, setActivePage] = useState('Dashboard');
   const [dashboard, setDashboard] = useState({});
@@ -194,12 +205,34 @@ export default function App() {
     setError('');
 
     try {
+      const loginData = {
+        role: loginRole
+      };
+
+      // ADMIN LOGIN
+
+      if (loginRole === 'ADMIN') {
+        loginData.email = email.trim();
+        loginData.password = password;
+      }
+
+      // STUDENT LOGIN
+
+      else if (loginRole === 'STUDENT') {
+        loginData.rollNumber = rollNumber.trim();
+        loginData.dateOfBirth = dateOfBirth;
+      }
+
+      // FACULTY LOGIN
+
+      else if (loginRole === 'STAFF') {
+        loginData.employeeCode = employeeCode.trim();
+        loginData.dateOfBirth = dateOfBirth;
+      }
+
       const response = await axios.post(
         `${API}/auth/login`,
-        {
-          email: email.trim(),
-          password
-        }
+        loginData
       );
 
       const newToken = response.data.token;
@@ -207,6 +240,8 @@ export default function App() {
       if (!newToken) {
         throw new Error('Authentication token missing.');
       }
+
+      // DECODE JWT
 
       const encoded = newToken
         .split('.')[1]
@@ -226,13 +261,29 @@ export default function App() {
         throw new Error('This account role is not supported.');
       }
 
+      if (userRole !== loginRole) {
+        throw new Error(
+          'The selected login role does not match your account.'
+        );
+      }
+
+      // SAVE SESSION
+
       sessionStorage.setItem('token', newToken);
       sessionStorage.setItem('role', userRole);
 
       setToken(newToken);
       setRole(userRole);
       setActivePage('Dashboard');
+
+      // CLEAR LOGIN FIELDS
+
+      setEmail('');
       setPassword('');
+      setRollNumber('');
+      setEmployeeCode('');
+      setDateOfBirth('');
+
       setError('');
 
     } catch (err) {
@@ -256,10 +307,18 @@ export default function App() {
 
     setToken(null);
     setRole(null);
+
     setDashboard({});
     setProfile(null);
+
     setEmail('');
     setPassword('');
+    setRollNumber('');
+    setEmployeeCode('');
+    setDateOfBirth('');
+
+    setLoginRole('STUDENT');
+
     setActivePage('Dashboard');
     setSidebarOpen(false);
     setError('');
@@ -313,15 +372,19 @@ export default function App() {
     return (
       <div className="login-page">
 
+        {/* BRANDING PANEL */}
+
         <section className="login-brand-panel">
 
           <div className="uit-brand">
+
             <span className="uit-mark">U</span>
 
             <span>
               UNITED INSTITUTE OF TECHNOLOGY
               <small>COLLEGE MANAGEMENT PORTAL</small>
             </span>
+
           </div>
 
           <div className="brand-message">
@@ -357,7 +420,11 @@ export default function App() {
 
         </section>
 
+        {/* LOGIN PANEL */}
+
         <section className="login-form-panel">
+
+          {/* THEME SELECTOR */}
 
           <div className="login-theme-control">
 
@@ -388,65 +455,177 @@ export default function App() {
               <GraduationCap size={28} />
             </div>
 
-            <span className="eyebrow">WELCOME BACK</span>
+            <span className="eyebrow">
+              WELCOME BACK
+            </span>
 
             <h2>Sign in to UIT</h2>
 
             <p className="muted">
-              Use your institutional account to continue.
+              Select your account type to continue.
             </p>
 
-            <label htmlFor="login-email">
-              Email address
-            </label>
+            {/* ROLE SELECTOR */}
 
-            <input
-              id="login-email"
-              type="email"
-              autoComplete="username"
-              placeholder="name@university.edu"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+            <div className="login-role-tabs">
 
-            <label htmlFor="login-password">
-              Password
-            </label>
+              {[
+                ['STUDENT', 'Student'],
+                ['STAFF', 'Faculty'],
+                ['ADMIN', 'Admin']
+              ].map(([value, label]) => (
 
-            <div className="password-field">
+                <button
+                  key={value}
+                  type="button"
+                  className={`login-role-tab ${
+                    loginRole === value ? 'active' : ''
+                  }`}
+                  onClick={() => {
+                    setLoginRole(value);
+                    setError('');
+                  }}
+                >
+                  {label}
+                </button>
 
-              <input
-                id="login-password"
-                type={showPassword ? 'text' : 'password'}
-                autoComplete="current-password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-
-              <button
-                type="button"
-                aria-label={
-                  showPassword ? 'Hide password' : 'Show password'
-                }
-                onClick={() => setShowPassword((value) => !value)}
-              >
-                {showPassword ? (
-                  <EyeOff size={18} />
-                ) : (
-                  <Eye size={18} />
-                )}
-              </button>
+              ))}
 
             </div>
+
+            {/* STUDENT LOGIN */}
+
+            {loginRole === 'STUDENT' && (
+
+              <>
+                <label htmlFor="login-roll">
+                  Student Roll Number
+                </label>
+
+                <input
+                  id="login-roll"
+                  type="text"
+                  autoComplete="username"
+                  placeholder="Enter your roll number"
+                  value={rollNumber}
+                  onChange={(e) => setRollNumber(e.target.value)}
+                  required
+                />
+
+                <label htmlFor="login-student-dob">
+                  Date of Birth
+                </label>
+
+                <input
+                  id="login-student-dob"
+                  type="date"
+                  value={dateOfBirth}
+                  onChange={(e) => setDateOfBirth(e.target.value)}
+                  required
+                />
+              </>
+
+            )}
+
+            {/* FACULTY LOGIN */}
+
+            {loginRole === 'STAFF' && (
+
+              <>
+                <label htmlFor="login-employee">
+                  Faculty Roll Number
+                </label>
+
+                <input
+                  id="login-employee"
+                  type="text"
+                  autoComplete="username"
+                  placeholder="Enter faculty roll number"
+                  value={employeeCode}
+                  onChange={(e) => setEmployeeCode(e.target.value)}
+                  required
+                />
+
+                <label htmlFor="login-staff-dob">
+                  Date of Birth
+                </label>
+
+                <input
+                  id="login-staff-dob"
+                  type="date"
+                  value={dateOfBirth}
+                  onChange={(e) => setDateOfBirth(e.target.value)}
+                  required
+                />
+              </>
+
+            )}
+
+            {/* ADMIN LOGIN */}
+
+            {loginRole === 'ADMIN' && (
+
+              <>
+                <label htmlFor="login-email">
+                  Email address
+                </label>
+
+                <input
+                  id="login-email"
+                  type="email"
+                  autoComplete="username"
+                  placeholder="Enter admin email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+
+                <label htmlFor="login-password">
+                  Password
+                </label>
+
+                <div className="password-field">
+
+                  <input
+                    id="login-password"
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+
+                  <button
+                    type="button"
+                    aria-label={
+                      showPassword
+                        ? 'Hide password'
+                        : 'Show password'
+                    }
+                    onClick={() => setShowPassword((value) => !value)}
+                  >
+                    {showPassword ? (
+                      <EyeOff size={18} />
+                    ) : (
+                      <Eye size={18} />
+                    )}
+                  </button>
+
+                </div>
+              </>
+
+            )}
+
+            {/* ERROR MESSAGE */}
 
             {error && (
               <div className="alert error-alert" role="alert">
                 {error}
               </div>
             )}
+
+            {/* SIGN IN BUTTON */}
 
             <button
               className="sign-in-button"
@@ -483,6 +662,8 @@ export default function App() {
 
   return (
     <div className="app-layout">
+
+      {/* MOBILE SIDEBAR BACKGROUND */}
 
       {sidebarOpen && (
         <button
@@ -523,10 +704,14 @@ export default function App() {
           COMPUTER SCIENCE & ENGINEERING
         </div>
 
-        <p className="menu-heading">WORKSPACE</p>
+        <p className="menu-heading">
+          WORKSPACE
+        </p>
 
         <nav>
+
           {menu.map(([name, Icon]) => (
+
             <button
               key={name}
               className={`nav-item ${
@@ -540,7 +725,9 @@ export default function App() {
               <Icon size={18} />
               <span>{name}</span>
             </button>
+
           ))}
+
         </nav>
 
         <div className="sidebar-bottom">
@@ -623,7 +810,9 @@ export default function App() {
 
             </div>
 
-            <span className="role-pill">{role}</span>
+            <span className="role-pill">
+              {role}
+            </span>
 
             <div className="topbar-avatar">
               {(profile?.name || role)[0]?.toUpperCase()}
@@ -649,6 +838,8 @@ export default function App() {
         {activePage === 'Dashboard' ? (
 
           <div className="dashboard-page">
+
+            {/* WELCOME BANNER */}
 
             <section className="welcome-banner">
 
@@ -682,7 +873,10 @@ export default function App() {
             <div className="section-heading">
 
               <div>
-                <span className="eyebrow">OVERVIEW</span>
+                <span className="eyebrow">
+                  OVERVIEW
+                </span>
+
                 <h3>Dashboard summary</h3>
               </div>
 
@@ -699,6 +893,7 @@ export default function App() {
             <section className="stats-grid">
 
               {stats.map(([label, key, Icon]) => (
+
                 <article
                   className="stat-card"
                   key={key}
@@ -726,6 +921,7 @@ export default function App() {
                   )}
 
                 </article>
+
               ))}
 
             </section>
@@ -737,7 +933,10 @@ export default function App() {
               <div className="section-heading">
 
                 <div>
-                  <span className="eyebrow">GET THINGS DONE</span>
+                  <span className="eyebrow">
+                    GET THINGS DONE
+                  </span>
+
                   <h3>Quick access</h3>
                 </div>
 
@@ -749,6 +948,7 @@ export default function App() {
                   .filter(([name]) => name !== 'Dashboard')
                   .slice(0, 8)
                   .map(([name, Icon]) => (
+
                     <button
                       key={name}
                       onClick={() => setActivePage(name)}
@@ -763,6 +963,7 @@ export default function App() {
                       <b>→</b>
 
                     </button>
+
                   ))}
 
               </div>
